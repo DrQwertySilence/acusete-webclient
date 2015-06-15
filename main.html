@@ -1,0 +1,214 @@
+<html>
+    <head>
+        <title>WebSocket Echo Client</title>
+    </head>
+    <body>
+        <h1>WebSocket Echo Client</h1>
+        <p>
+            <span id="wsuri">ws://drqwertysilence.no-ip.biz:1234<span>
+        </p>
+        <p>
+            <input id="ip" type="text" name="ip" value="drqwertysilence.no-ip.biz">
+            <input id="port" type="number" name="port" value="1234">
+            <button onClick="setWsUri();">Update</button>
+        </p>
+        <p>
+            <div id="connection" style="display:inline-block;width:16px;height:16px;background-color:red;"></div>
+            <button onClick="initWebSocket();">Connect</button>
+            <button onClick="stopWebSocket();">Disconnect</button>
+            <button onClick="checkSocket();">State</button>
+			<span>Debug:</span><input id="debug" type="checkbox" name="debug" value="true">
+        </p>
+        <p>
+            <div id="alert" style="display:inline-block;width:16px;height:16px;background-color:gray;"></div>
+            <button onClick="alert();">Start</button>
+            <button onClick="stop();">Stop</button>
+        </p>
+        <p>
+            <input id="timerH" type="number" name="timerH" value="">
+            <input id="timerM" type="number" name="timerM" value="">
+            <input id="timerS" type="number" name="timerS" value="">
+            <button onClick="setTimer();">Set</button>
+        </p>
+        <p>
+            <textarea id="debugTextArea" style="width:400px;height:200px;"></textarea>
+        </p>
+        <p>
+            <input type="text" id="inputText" onkeydown="if(event.keyCode==13)sendMessage();"/>
+            <button onClick="sendMessage();">Send</button>
+        </p>
+        <p id="timers">
+        </p>
+
+        <script type="text/javascript">
+            var debugTextArea = document.getElementById("debugTextArea");
+
+			/**
+			Put a dem message to the 'console'... yeah.
+			*/
+            function debug(message) {
+				if (document.getElementById("debug").checked == true) {
+                    debugTextArea.value += message + "\n";
+                    debugTextArea.scrollTop = debugTextArea.scrollHeight;
+				}
+            }
+
+			/**
+			Send any UTF-8 base array message to the server
+			*/
+            function sendMessage() {
+                var msg = document.getElementById("inputText").value;
+                if ( websocket != null )
+                {
+                    document.getElementById("inputText").value = "";
+                    websocket.send( msg );
+                    console.log( "string sent :", '"'+msg+'"' );
+                }
+            }
+
+            var wsUri = "ws://drqwertysilence.no-ip.biz:1234";
+            var websocket = null;
+            
+			/**
+			Set the websocket url to the textbox 'wsuri'.
+			*/
+            function setWsUri() {
+                websocket.close();
+                wsUri = "ws://" + document.getElementById("ip").value + ":" + document.getElementById("port").value;
+                document.getElementById("wsuri").innerHTML = wsUri;
+            }
+
+			/**
+			Init the connection with the server and implement a bunch of crap. Refactor please. qq
+			*/
+            function initWebSocket() {
+                try {
+                    if (typeof MozWebSocket == 'function')
+                        WebSocket = MozWebSocket;
+                    if ( websocket && websocket.readyState == 1 )
+                        websocket.close();
+                    websocket = new WebSocket( wsUri );
+                    websocket.onopen = function (evt) {
+                        debug("CONNECTED");
+                        document.getElementById("connection").style.backgroundColor = "green";
+                    };
+                    websocket.onclose = function (evt) {
+                        debug("DISCONNECTED");
+                        document.getElementById("connection").style.backgroundColor = "red";
+                    };
+                    websocket.onmessage = function (evt) {
+                        var args = evt.data.split(" ");
+                        debug( args[0] );
+                        if (args[0] == "/alert") {
+                            if (args.length == 1) {
+                                document.getElementById("alert").style.backgroundColor = "orange";
+                            } else if (args[1] == "up") {
+                                document.getElementById("alert").style.backgroundColor = "orange";
+                            } else if (args[1] == "down") {
+                                document.getElementById("alert").style.backgroundColor = "gray";
+                            }
+                        } else if (args[0] == "/displayTimers") {
+                            var timers = args.slice(1, args.length);
+							document.getElementById("timers").innerHTML = "";
+                            for (var i in timers) {
+								var time = timers[i].split(",");
+                                document.getElementById("timers").innerHTML += "<p>" + time[0] + ":" + time[1] + "</p>";
+                            }
+                        }
+                        console.log( "Message received :", evt.data );
+                        debug( evt.data );
+                    };
+                    websocket.onerror = function (evt) {
+                        debug('ERROR: ' + evt.data);
+                    };
+                } catch (exception) {
+                    debug('ERROR: ' + exception);
+                }
+            }
+
+			/**
+			Close the connection with the server.
+			*/
+            function stopWebSocket() {
+                if (websocket)
+                    websocket.close();
+            }
+
+			/**
+			Get the state of the websocket.
+			*/
+            function checkSocket() {
+                if (websocket != null) {
+                    var stateStr;
+                    switch (websocket.readyState) {
+                        case 0: {
+                            stateStr = "CONNECTING";
+                            break;
+                        }
+                        case 1: {
+                            stateStr = "OPEN";
+                            break;
+                        }
+                        case 2: {
+                            stateStr = "CLOSING";
+                            break;
+                        }
+                        case 3: {
+                            stateStr = "CLOSED";
+                            break;
+                        }
+                        default: {
+                            stateStr = "UNKNOW";
+                            break;
+                        }
+                    }
+                    debug("WebSocket state = " + websocket.readyState + " ( " + stateStr + " )");
+                } else {
+                    debug("WebSocket is null");
+                }
+            }
+            /**
+			Start the annoy alarm.
+			*/
+            function alert() {
+                if ( websocket != null )
+                {
+                    websocket.send( "/alert start" );
+                }
+            }
+            /**
+			Stop the annoy alarm.
+			*/
+            function stop() {
+                if ( websocket != null )
+                {
+                    websocket.send( "/alert stop" );
+                }
+            }
+            /**
+			Set a timer server side. Need a refactor (take args).
+			*/
+            function setTimer() {
+                if ( websocket != null ) {
+                    var h = document.getElementById("timerH").value
+                    var m = document.getElementById("timerM").value
+                    var s = document.getElementById("timerS").value
+                    var ms = (h * 360000) + (m * 60000) + (s * 1000)
+                    debug(ms)
+                    websocket.send( "/setTimer " + ms );
+                }
+            }
+            /**
+			Get timers from server and display them on the webpage.
+			*/
+            function updateTimers() {
+                if ( websocket != null ) {
+                    websocket.send( "/getTimers" );
+                }
+				debug("tick");
+            }
+			
+			var interval = setInterval(function(){updateTimers()}, 1000);
+        </script>
+    </body>
+</html>
