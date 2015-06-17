@@ -111,8 +111,9 @@
                             var timers = args.slice(1, args.length);
 							document.getElementById("timers").innerHTML = "";
                             for (var i in timers) {
-								var time = timers[i].split(",");
-                                document.getElementById("timers").innerHTML += "<p>" + time[0] + ":" + time[1] + "</p>";
+								//var time = timers[i].split(",");
+                                //document.getElementById("timers").innerHTML += "<p>" + time[0] + ":" + time[1] + "</p>";
+                                document.getElementById("timers").innerHTML += "<p>" + timers[i] + "</p>";
                             }
                         }
                         console.log( "Message received :", evt.data );
@@ -193,7 +194,7 @@
                     var h = document.getElementById("timerH").value
                     var m = document.getElementById("timerM").value
                     var s = document.getElementById("timerS").value
-                    var ms = (h * 360000) + (m * 60000) + (s * 1000)
+                    var ms = (h * 3600000) + (m * 60000) + (s * 1000)
                     debug(ms)
                     websocket.send( "/setTimer " + ms );
                 }
