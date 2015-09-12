@@ -177,55 +177,15 @@ function updateTimers() {
   }
 }
 
-function updateSensorData() {
+function updateSensorData(deviceNumber) {
   if ( websocket != null ) {
-    websocket.send( "/getSensorData 0" );
+    websocket.send( "/getSensorData "+ deviceNumber);
   }
 }
 
 function tick() {
   debug("[Tick]");
   updateTimers();
-  updateSensorData();
+  updateSensorData(0);
 }
-
-function displaydialog(name, show) {
-	if (show == true)
-		document.getElementById(name).style.display = "block";
-	else if (show == false)
-		document.getElementById(name).style.display = "none";
-	else
-		document.getElementById(name).style.display = "block";
-}
-
-function isHidden(name) {
-	if (document.getElementById(name).style.display == "block")
-		return true;
-	else if (document.getElementById(name).style.display == "none")
-		return false;
-	else
-		return true;
-}
-
-function displayaddtimerdialog(show) {
-	displaydialog("addtimerdialog", show);
-	if (show == false) {
-	  document.getElementById("timerH").value = "";
-      document.getElementById("timerM").value = "";
-      document.getElementById("timerS").value = "";
-	}
-}
-
-function displaymenu(show) {
-	displaydialog("menu", show)
-}
-
-function togglemenu() {
-	displaydialog("menu", show)
-}
-
-function displayseturidialog(show) {
-	displaydialog("seturidialog", show)
-}
-
 var interval = setInterval(function(){tick()}, 1000);

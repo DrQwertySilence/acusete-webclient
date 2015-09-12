@@ -1,0 +1,6 @@
+#graph .epoch .ppm .line {
+	stroke: yellow;
+}
+#graph .epoch .temperature .line {
+	stroke: red;
+}
