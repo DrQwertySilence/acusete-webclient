@@ -1,19 +1,30 @@
 //Receive a string from the server and
-function parseDataString(graphData) {
-  var data;
-  var moreData = data.split(" ");
-  var parsedData;
-  if ((moreData.length + 1) == graphData.length) {
-    for (var i = 0; i < graphData.length; i++) {
-      if(graphData[i].label == "PPM")
-        graphData[i].values.push({time:moreData[0], y: moreData[1]});
-      else
-        graphData[i].values.push({time:moreData[0], y: moreData[i + 1]});
-    };
-    return true;
+function TEST_dataObject(timeOffset)
+{
+  var dataObject;
+  dataObject = {
+    id: "testDevice",
+    time: 1442107814 + timeOffset,
+    ppm: Math.floor((Math.random() * 56) + 144),
+    temperature: [Math.floor((Math.random() * 8) + 24), Math.floor((Math.random() * 8) + 24)],
   }
-  else
-    return false;
+  return dataObject;
+}
+
+function parseDataString(graphData, dataString) {
+  // grapData: A group of graph lines
+  // dataString: Data from server without the msg command (/Command). Ex: "deviceId 1442107814 144 32..."
+  var parsedData = dataString.split(" ");
+  for (var i = 0; i < graphData.length; i++) {
+    if(graphData[i].label == "PPM")
+      graphData[i].values.push({time:parsedData[1], y: parsedData[2]});
+    else
+      graphData[i].values.push({time:parsedData[1], y: parsedData[i + 2]});
+  }
+}
+
+function TEST_parseDataString() {
+  parseDataString(graphData)
 }
 
 function buildGraphData() {

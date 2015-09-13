@@ -1,13 +1,16 @@
-var debugTextArea = document.getElementById("debugTextArea");
-var debugVar = false;
+/**
+UGLY GLOBALS
+*/
+var G_DEBUG_TEXTAREA = document.getElementById("debugTextArea");
+var G_DEBUG = false;
 
 /**
 Put a dem message into the 'console'... yeah.
 */
 function debug(message) {
-  if (debugVar == true) {
-    debugTextArea.value += message + "\n";
-    debugTextArea.scrollTop = debugTextArea.scrollHeight;
+  if (G_DEBUG == true) {
+    G_DEBUG_TEXTAREA.value += message + "\n";
+    G_DEBUG_TEXTAREA.scrollTop = G_DEBUG_TEXTAREA.scrollHeight;
   }
 }
 
@@ -70,28 +73,36 @@ function initWebSocket() {
         var timers = args.slice(1, args.length);
         document.getElementById("timers").innerHTML = "";
         for (var i in timers) {
-          document.getElementById("timers").innerHTML += "<p style='text-align:center;'>" + timers[i] + "</p>";
+          document.getElementById("timers").innerHTML += "<span>" + timers[i] + "</span><br />";
         }
       } else if (args[0] == "/displaySensorData") {
-        var sensorData = args.slice(1, args.length);
-        var ppm = sensorData[0];
-        var temp = sensorData.slice(1, args.length);
-		
-		
-		ppmInt = Number(args[1]);
-		if (ppmInt < 50)
-			var msg = "PPM: Temp:";
-		else
-			var msg = "PPM: " + ppmInt + " Temp:";
-		
-        for (var i = 2; i < args.length; ++i) {
-		  tempFloat = parseFloat(args[i]);
-		  if (tempFloat < -273 || tempFloat == "NaN")
-			msg += "";
-	      else
-            msg += " " + parseFloat(args[i]).toFixed(2);
+        var serverData = args.slice(1, args.length);
+        var deviceID = serverData[0];
+        var time = serverData[1];
+        var ppm = serverData[2];
+        var temperatureData = serverData.slice(3, args.length);
+
+        var msg = "";
+
+        msg += "Device " + deviceID + " data:";
+        
+        msg += " Time: " + time;
+
+        msg += " PPM: ";
+        if (Number(ppm) < 50)
+          msg += "N/A";
+        else
+          msg += ppm;
+
+        msg += " Temperature:";
+        for (var i = 0; i < temperatureData.length; ++i) {
+          tempFloat = parseFloat(temperatureData[i]);
+          if (tempFloat < -273 || tempFloat == "NaN")
+            msg += " N/A";
+          else
+            msg += " " + parseFloat(temperatureData[i]).toFixed(2);
         }
-        document.getElementById("sensorData").innerHTML = "<p style='text-align:center;'>" + msg + "</p>";
+        document.getElementById("sensorData").innerHTML = "<span>" + msg + "</span><br />";
       }
       console.log( "Message received :", evt.data );
       debug( evt.data );
@@ -188,4 +199,5 @@ function tick() {
   updateTimers();
   updateSensorData(0);
 }
-var interval = setInterval(function(){tick()}, 1000);
+
+var G_INTERVAL = setInterval(function(){tick()}, 1000);
