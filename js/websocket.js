@@ -1,203 +1,345 @@
-/**
-UGLY GLOBALS
-*/
-var G_DEBUG_TEXTAREA = document.getElementById("debugTextArea");
+/****************************************************************
+ * UGLY GLOBALS!!!
+ ****************************************************************/
 var G_DEBUG = false;
 
 /**
-Put a dem message into the 'console'... yeah.
-*/
-function debug(message) {
-  if (G_DEBUG == true) {
-    G_DEBUG_TEXTAREA.value += message + "\n";
-    G_DEBUG_TEXTAREA.scrollTop = G_DEBUG_TEXTAREA.scrollHeight;
-  }
-}
+ * WEBSOCKET STATES:
+ * 0 = "CONNECTING";
+ * 1 = "OPEN";
+ * 2 = "CLOSING";
+ * 3 = "CLOSED";
+ * ? = "UNKNOW";
+ */
+var G_WEBSOCKET = null;
+var G_URI = "ws://drqwertysilence.no-ip.biz:1234";
 
 /**
-Send any UTF-8 base array message to the server
-*/
-function sendMessage() {
-  var msg = document.getElementById("inputText").value;
-  var args = msg.split(" ");
-  if ( websocket != null ) {
-    document.getElementById("inputText").value = "";
-    websocket.send( msg );
-    console.log( "string sent :", '"'+ msg +'"' );
-  }
-}
-
-var wsUri = "ws://drqwertysilence.no-ip.biz:1234";
-var websocket = null;
+ * Binary messages:
+ * /setTimer = 
+ */
+var BM_TEST_8_TO_32 = 50
+var BM_SET_TIMER = 100
 
 /**
-Set the websocket url to the textbox 'wsuri'.
-*/
+ * Set the websocket url to the textbox 'wsuri'.
+ */
 function setWsUri() {
-  if (websocket)
-    websocket.close();
-  wsUri = "ws://" + document.getElementById("ip").value + ":" + document.getElementById("port").value;
-  document.getElementById("wsuri").innerHTML = wsUri;
+  if (G_WEBSOCKET)
+    G_WEBSOCKET.close();
+  G_URI = "ws://" + $("#ip").val() + ":" + $("#port").val();
+  toggleSetURIDialog()
+// document.getElementById("wsuri").innerHTML = wsUri;
 }
 
 /**
-Init the connection with the server and implement a bunch of crap. Refactor please. qq
-*/
+ * If 16,777,215 then [0x00,0xff,0xff,0xff]
+ * If 4,294,967,040 then [0xff,0xff,0xff,0x00]
+ * Works with any array size.
+ */
+function binary_int32ToByteArray(integer32) {
+  var byteArray = new Uint8Array(4);
+  var number = integer32;
+  var temp = 0;
+  var operationLength = byteArray.length - 1
+
+  for (var i = 0, j = operationLength; i < operationLength; ++i, --j) {
+    if (number >= Math.pow(0x100, j)) {
+      temp = Math.floor(number / Math.pow(0x100, j));
+      byteArray[i] = temp;
+      number = number - (temp * Math.pow(0x100, j));
+      temp = 0;
+    }
+  }
+  byteArray[operationLength] = number;
+
+  return byteArray;
+}
+
+/**
+ *
+ */
+function binary_byteArrayToInt32(byteArray) {
+  var integer32 = 0;
+  //
+  for (var i = 0; i < byteArray.length; ++i)
+    integer32 += byteArray[i] * Math.pow(0x100, byteArray.length - i - 1);
+  //
+  return integer32;
+}
+
+/**
+ *
+ */
+function onBinaryMessage(evt) {
+  var bytearray = new Uint8Array(event.data);
+
+  if (bytearray[0] == BM_TEST_8_TO_32) {
+    var dataOffset = 2
+    var number = 0;
+
+    for (var i = 0; i < bytearray[1]; ++i)
+      number += bytearray[i + dataOffset] * Math.pow(0x100, i);
+
+    var test_number = binary_byteArrayToInt32([0xff,0xff,0xff,0x00]);
+    alert(test_number);
+    alert(binary_int32ToByteArray(test_number))
+    var bytearrayTEST = binary_int32ToByteArray(test_number);
+    alert(binary_byteArrayToInt32(bytearrayTEST))
+  }
+  return;
+}
+
+/**
+ *
+ */
+function onTextMessage(evt) {
+  var message = evt.data.split(" ");
+  var message_command = message[0];
+  var message_args = message.slice(1, message.length);
+  //
+  if (message_command == "/alert") {
+    shouldAlert(message_args)
+  } else if (message_command == "/displayTimers") {
+    displayTimers(message_args);
+  } else if (message_command == "/displaySensorData") {
+    displaySensorData(message_args)
+  } else if (message_command == "/recordedDataForGraph") {
+    drawGraph(message_args);
+  }
+}
+
+/**
+ * Init and configure the connection with the server.
+ */
 function initWebSocket() {
   try {
     if (typeof MozWebSocket == 'function')
-      WebSocket = MozWebSocket;
-    if ( websocket && websocket.readyState == 1 )
-      websocket.close();
-    websocket = new WebSocket( wsUri );
-    websocket.onopen = function (evt) {
-      debug("CONNECTED");
-      document.getElementById("connection").style.backgroundColor = "green";
+      G_WEBSOCKET = MozWebSocket;
+    if ( G_WEBSOCKET && G_WEBSOCKET.readyState == 1 )
+      G_WEBSOCKET.close();
+    G_WEBSOCKET = new WebSocket( G_URI );
+    G_WEBSOCKET.binaryType = "arraybuffer";
+
+    G_WEBSOCKET.onopen = function (evt) {
+      ui_onopen()
     };
-    websocket.onclose = function (evt) {
-      debug("DISCONNECTED");
-      document.getElementById("connection").style.backgroundColor = "red";
+    G_WEBSOCKET.onclose = function (evt) {
+      ui_onclose()
     };
-    websocket.onmessage = function (evt) {
-      var args = evt.data.split(" ");
-      debug( args[0] );
-      if (args[0] == "/alert") {
-        if (args.length == 1) {
-          document.getElementById("alert").style.backgroundColor = "orange";
-        } else if (args[1] == "up") {
-          document.getElementById("alert").style.backgroundColor = "orange";
-        } else if (args[1] == "down") {
-          document.getElementById("alert").style.backgroundColor = "gray";
-        }
-      } else if (args[0] == "/displayTimers") {
-        var timers = args.slice(1, args.length);
-        document.getElementById("timers").innerHTML = "";
-        for (var i in timers) {
-          document.getElementById("timers").innerHTML += "<span>" + timers[i] + "</span><br />";
-        }
-      } else if (args[0] == "/displaySensorData") {
-        var serverData = args.slice(1, args.length);
-        var deviceID = serverData[0];
-        var time = serverData[1];
-        var ppm = serverData[2];
-        var temperatureData = serverData.slice(3, args.length);
-
-        var msg = "";
-
-        msg += "Device " + deviceID + " data:";
-        
-        msg += " Time: " + time;
-
-        msg += " PPM: ";
-        if (Number(ppm) < 50)
-          msg += "N/A";
-        else
-          msg += ppm;
-
-        msg += " Temperature:";
-        for (var i = 0; i < temperatureData.length; ++i) {
-          tempFloat = parseFloat(temperatureData[i]);
-          if (tempFloat < -273 || tempFloat == "NaN")
-            msg += " N/A";
-          else
-            msg += " " + parseFloat(temperatureData[i]).toFixed(2);
-        }
-        document.getElementById("sensorData").innerHTML = "<span>" + msg + "</span><br />";
+    G_WEBSOCKET.onmessage = function (evt) {
+      if(evt.data instanceof ArrayBuffer) {
+        onBinaryMessage(evt);
+      } else {
+        onTextMessage(evt);
       }
-      console.log( "Message received :", evt.data );
-      debug( evt.data );
     };
-    websocket.onerror = function (evt) {
-      debug('ERROR: ' + evt.data);
+    G_WEBSOCKET.onerror = function (evt) {
     };
   } catch (exception) {
-    debug('ERROR: ' + exception);
   }
 }
 
 /**
-Close the connection with the server.
-*/
+ * Close the connection with the server.
+ */
 function stopWebSocket() {
-  if (websocket)
-    websocket.close();
+  if (G_WEBSOCKET)
+    G_WEBSOCKET.close();
 }
 
 /**
-Get the state of the websocket.
-*/
-function checkSocket() {
-  if (websocket != null) {
-    var stateStr;
-    switch (websocket.readyState) {
-      case 0: {
-        stateStr = "CONNECTING";
-        break;
-      }
-      case 1: {
-        stateStr = "OPEN";
-        break;
-      }
-      case 2: {
-        stateStr = "CLOSING";
-        break;
-      }
-      case 3: {
-        stateStr = "CLOSED";
-        break;
-      }
-      default: {
-        stateStr = "UNKNOW";
-        break;
-      }
-    }
-    debug("WebSocket state = " + websocket.readyState + " ( " + stateStr + " )");
-  } else {
-    debug("WebSocket is null");
-  }
-}
-/**
-Stop the annoy alarm.
-*/
-function stop() {
-  if ( websocket != null )
-  {
-    websocket.send( "/alert stop" );
-  }
-}
-/**
-Set a timer server side. Need a refactor (take args).
-*/
-function setTimer() {
-  if ( websocket != null ) {
-    var h = document.getElementById("timerH").value
-    var m = document.getElementById("timerM").value
-    var s = document.getElementById("timerS").value
-    var ms = (h * 3600000) + (m * 60000) + (s * 1000)
-    debug(ms)
-    websocket.send( "/setTimer " + ms );
-  }
-  displayaddtimerdialog(false)
-}
-/**
-Get timers from server and display them on the webpage.
-*/
-function updateTimers() {
-  if ( websocket != null ) {
-    websocket.send( "/getTimers" );
-  }
-}
-
-function updateSensorData(deviceNumber) {
-  if ( websocket != null ) {
-    websocket.send( "/getSensorData "+ deviceNumber);
-  }
-}
-
+ *
+ */
 function tick() {
-  debug("[Tick]");
-  updateTimers();
-  updateSensorData(0);
+  if (G_WEBSOCKET != null && G_WEBSOCKET.readyState == 1) {
+    updateTimers();
+    updateSensorData(0);
+  }
 }
 
 var G_INTERVAL = setInterval(function(){tick()}, 1000);
+
+/****************************************************************
+ * CLIENT TO SERVER
+ ****************************************************************/
+
+/**
+ * Get timers from server and display them on the webpage.
+ */
+function updateTimers() {
+  G_WEBSOCKET.send( "/getTimers" );
+}
+
+/**
+ * Tells the server to send device data
+ */
+function updateSensorData(deviceNumber) {
+  G_WEBSOCKET.send( "/getSensorData "+ deviceNumber);
+}
+
+/**
+ * Tells to the server to stop the hard (warning) and all soft alarms
+ * The function should be splited up
+ */
+function stop() {
+  if ( G_WEBSOCKET != null && G_WEBSOCKET.readyState == 1)
+    G_WEBSOCKET.send( "/alert stop" );
+}
+
+/** 
+ * Tells to the server to set a soft alarm timer.
+ * I don't know, it needs a refactor (take args. Ex.: hours, minutes, seconds).
+ */
+function setTimer() {
+  if ( G_WEBSOCKET != null && G_WEBSOCKET.readyState == 1) {
+    var h = $("#timerH").val();
+    var m = $("#timerM").val();
+    var s = $("#timerS").val();
+    var ms = (h * 3600000) + (m * 60000) + (s * 1000);
+    //
+    G_WEBSOCKET.send( "/setTimer " + ms );
+  }
+  displayaddtimerdialog(false)
+}
+
+/****************************************************************
+ * SERVER TO CLIENT
+ ****************************************************************/
+
+/**
+ *
+ */
+function shouldAlert(args) {
+  if (args.length == 0) {
+    $("#alert").css("background-color", "orange");
+  } else if (args[0] == "up") {
+    $("#alert").css("background-color", "orange");
+  } else if (args[0] == "down") {
+    $("#alert").css("background-color", "gray");
+  }
+}
+
+
+/**
+ *
+ */
+function playTimer(timerId) {
+  G_WEBSOCKET.send( "/playTimer " + timerId );
+}
+
+/**
+ *
+ */
+function pauseTimer(timerId) {
+  G_WEBSOCKET.send( "/pauseTimer " + timerId );
+}
+
+/**
+ *
+ */
+function stopTimer(timerId) {
+  G_WEBSOCKET.send( "/stopTimer " + timerId );
+}
+
+/**
+ *
+ */
+function restartTimer(timerId) {
+  G_WEBSOCKET.send( "/restartTimer " + timerId );
+}
+
+/**
+ *
+ */
+function displayTimers(args) {
+  $("#timerZone").html("");
+  var html = "";
+  if (args[0] == "")
+    return;
+  for (var i in args) {
+    var timerData = args[i].split(";");
+    html +=
+    "<div class='timer col-xs-6 col-md-2'><div class='timer-inner'>" +
+    "<div class='row'><span id='timersTEST' class='bigLabel col-xs-12 col-md-12'>" + timerData[1] + "</span></div><div class='row'>" +
+    "<button class='btn btn-default col-xs-6 col-md-6' onClick='pauseTimer(" + timerData[0] + ")'>X</button>" +
+    "<button class='btn btn-default col-xs-6 col-md-6 hidden' onClick='playTimer(" + timerData[0] + ")'>X</button>" +
+    "<button class='btn btn-default col-xs-6 col-md-6' onClick='stopTimer(" + timerData[0] + ")'>X</button>" +
+    "<button class='btn btn-default col-xs-6 col-md-6 hidden' onClick='restartTimer(" + timerData[0] + ")'>X</button></div></div></div>";
+  }
+  $("#timerZone").html(html)
+}
+
+/**
+ *
+ */
+function OLD_displayTimers(args) {
+  $("#timers").html("");
+  var html = "";
+  for (var i in args) {
+    html += "<span>" + args[i] + "</span><br />";
+  }
+  $("#timers").html(html)
+}
+
+/**
+ *
+ */
+function displaySensorData(args) {
+  var devices = [];
+
+  for (var i = 0; i < args.length; ++i) {
+    var deviceData = args[i].split(":");
+    devices.push({id: deviceData[0], time: deviceData[1], ppm: deviceData[2], temperatures: deviceData.slice(3, deviceData.length)});
+  };
+
+  $("#sensorData").html("");
+
+  for (var i = 0; i < devices.length; ++i) {
+    var html = "<span>";
+    html += "Device ID: " + devices[i].id;
+    html += " Time: " + moment.unix(Number(devices[i].time)).format("YYYY-MM-DD HH:mm:ss");
+    html += " PPM: " + devices[i].ppm;
+    html += " Temperatures:";
+    for (var j = 0; j < devices[i].temperatures.length; ++j) {
+      html += " " + parseFloat(devices[i].temperatures[j]).toFixed(2);
+    }
+    html += "</span><br />"
+  }
+  $("#sensorData").html(html)
+}
+
+/**
+ *
+ */
+function drawGraph(args) {
+  var device = Object();
+  device.id = args[0];
+  device.data = Array();
+  for (var i = 1; i < args.length; ++i) {
+    var data = args[i].split(":");
+    var time = data[0];
+    var ppm = data[1];
+    var temperatures = Array();
+    for (var j = 2; j < data.length; ++j) {
+      temperatures.push(data[j]);
+    };
+    device.data.push({time: time, ppm: ppm, temperatures: temperatures});
+  };
+  graph_drawGraphFromObject(device)
+}
+
+/**
+ *
+ */
+function getRecordedData() {
+  if ( G_WEBSOCKET != null && G_WEBSOCKET.readyState == 1) {
+    var start = (new Date($("#input-daterange-start").val() + " 00:00:00")).getTime() / 1000;
+    var end = (new Date($("#input-daterange-start").val() + " 23:59:59")).getTime() / 1000;
+    if (start < 0)
+      start = 0;
+    if (end < 0)
+      end = 0;
+    G_WEBSOCKET.send( "/getRecordedData "+ "Derp " + start + " " + end); // a complete day
+  }
+}

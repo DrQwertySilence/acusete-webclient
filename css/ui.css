@@ -2,3 +2,23 @@
 	height: 4px;
 	border-radius: 4px
 }
+
+.hidden {
+	display: none;
+}
+
+.bigLabel {
+	font-size: 24px;
+	text-align: center;
+}
+
+.timer {
+	/*margin: 4px;*/
+	padding: 4px 4px 4px 4px;
+	border-radius: 4px;
+	background-color: red;
+}
+
+.timer-inner {
+
+}
