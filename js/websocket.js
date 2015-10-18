@@ -94,11 +94,27 @@ function onBinaryMessage(evt) {
  *
  */
 function onTextMessage(evt) {
+  //
+  var serverObj = "";
+  var serverMsg = "";
+  if (evt.data[0] != "/") {
+    serverObj = JSON.parse(evt.data);
+    serverMsg = serverObj.message;
+  }
+  //
   var message = evt.data.split(" ");
   var message_command = message[0];
   var message_args = message.slice(1, message.length);
   //
-  if (message_command == "/alert") {
+  if (serverMsg == "alert") {
+    shouldAlert_2(serverObj.msgData.value)
+  } else if (serverMsg == "displayTimers") {
+    displayTimers_2(serverObj.msgData);
+  } else if (serverMsg == "displaySensorData") {
+    displaySensorData_2(serverObj.msgData);
+  } else if (serverMsg == "recordedDataForGraph") {
+    drawGraph_2(serverObj.msgData);
+  } else if (message_command == "/alert") {
     shouldAlert(message_args)
   } else if (message_command == "/displayTimers") {
     displayTimers(message_args);
@@ -106,6 +122,19 @@ function onTextMessage(evt) {
     displaySensorData(message_args)
   } else if (message_command == "/recordedDataForGraph") {
     drawGraph(message_args);
+  } else if (message_command == "/timerResumed") {
+    onTimerResumed(message_args[0]);
+  } else if (message_command == "/timerPaused") {
+    onTimerPaused(message_args[0]);
+  } else if (message_command == "/timerStopped") {
+    onTimerStopped(message_args[0]);
+  } else if (message_command == "/timerRestarted") {
+    onTimerRestarted(message_args[0]);
+  } else if (message_command == "/timerDestroyed") {
+    onTimerDestroyed(message_args[0]);
+  } else {
+    alert(evt.data);
+    alert(JSON.parse(evt.data).message);
   }
 }
 
@@ -203,29 +232,11 @@ function setTimer() {
   displayaddtimerdialog(false)
 }
 
-/****************************************************************
- * SERVER TO CLIENT
- ****************************************************************/
-
 /**
  *
  */
-function shouldAlert(args) {
-  if (args.length == 0) {
-    $("#alert").css("background-color", "orange");
-  } else if (args[0] == "up") {
-    $("#alert").css("background-color", "orange");
-  } else if (args[0] == "down") {
-    $("#alert").css("background-color", "gray");
-  }
-}
-
-
-/**
- *
- */
-function playTimer(timerId) {
-  G_WEBSOCKET.send( "/playTimer " + timerId );
+function resumeTimer(timerId) {
+  G_WEBSOCKET.send( "/resumeTimer " + timerId );
 }
 
 /**
@@ -252,23 +263,132 @@ function restartTimer(timerId) {
 /**
  *
  */
-function displayTimers(args) {
-  $("#timerZone").html("");
-  var html = "";
-  if (args[0] == "")
-    return;
-  for (var i in args) {
-    var timerData = args[i].split(";");
-    html +=
-    "<div class='timer col-xs-6 col-md-2'><div class='timer-inner'>" +
-    "<div class='row'><span id='timersTEST' class='bigLabel col-xs-12 col-md-12'>" + timerData[1] + "</span></div><div class='row'>" +
-    "<button class='btn btn-default col-xs-6 col-md-6' onClick='pauseTimer(" + timerData[0] + ")'>X</button>" +
-    "<button class='btn btn-default col-xs-6 col-md-6 hidden' onClick='playTimer(" + timerData[0] + ")'>X</button>" +
-    "<button class='btn btn-default col-xs-6 col-md-6' onClick='stopTimer(" + timerData[0] + ")'>X</button>" +
-    "<button class='btn btn-default col-xs-6 col-md-6 hidden' onClick='restartTimer(" + timerData[0] + ")'>X</button></div></div></div>";
-  }
-  $("#timerZone").html(html)
+function destroyTimer(timerId) {
+  G_WEBSOCKET.send( "/destroyTimer " + timerId );
 }
+
+
+/****************************************************************
+ * SERVER TO CLIENT
+ ****************************************************************/
+
+/**
+ *
+ */
+function shouldAlert(args) {
+  if (args.length == 0) {
+    $("#alert").css("background-color", "orange");
+  } else if (args[0] == "up") {
+    $("#alert").css("background-color", "orange");
+  } else if (args[0] == "down") {
+    $("#alert").css("background-color", "gray");
+  }
+}
+
+function shouldAlert_2(state) {
+  if (state)
+    $("#alert").css("background-color", "orange");
+  else
+    $("#alert").css("background-color", "gray");
+}
+
+/**
+ *
+ */
+function drawTimer(frame, id, time) {
+  timeStr = moment.unix(Number(time)).format("HH:mm:ss Z");
+
+  var timer = "<div id='timer-" + id + "' class='timer col-xs-6 col-md-2'><div class='timer-inner'>" +
+  "<div class='row'><span id='timer-" + id + "-time' class='bigLabel col-xs-12 col-md-12'>" + timeStr + "</span></div>" +
+  "<div class='row'>" +
+  "<button id='timer-"+ id +"-control-pause' class='pause btn btn-default col-xs-6 col-md-6' onClick='pauseTimer(" + id + ")'>Pause</button>" +
+  "<button id='timer-"+ id +"-control-resume' class='resume btn btn-default col-xs-6 col-md-6' onClick='resumeTimer(" + id + ")'>Resume</button>" +
+  "<button id='timer-"+ id +"-control-stop' class='stop btn btn-default col-xs-6 col-md-6' onClick='stopTimer(" + id + ")'>Stop</button>" +
+  "<button id='timer-"+ id +"-control-restart' class='restart btn btn-default col-xs-6 col-md-6' onClick='restartTimer(" + id + ")'>Restart</button>" +
+  "<button id='timer-"+ id +"-control-destroy' class='destroy btn btn-default col-xs-6 col-md-6' onClick='destroyTimer(" + id + ")'>Destroy</button></div></div>" +
+  "</div>";
+
+  $(frame).append(timer);
+
+  var domId = "#timer-" + id;
+  $(domId).find(domId + "-control-resume").css("display", "none");
+  $(domId).find(domId + "-control-restart").css("display", "none");
+  $(domId).find(domId + "-control-destroy").css("display", "none");
+}
+
+/**
+ *
+ */
+function displayTimers(args) {
+  // SERVER
+  serverTimers = args;
+  if (serverTimers[0] == "")
+    return;
+  
+  // HTML
+  var frameID = "#timerZone";
+  var frame = $(frame);
+
+  var clientTimers = frame.children();
+  var numberOfTimers = clientTimers.length;
+  var html = frame.html();
+
+  for (var i in serverTimers) {
+    var timerData = serverTimers[i].split(";");
+    var id = timerData[0];
+    var time = timerData[1];
+
+    if (frame.html() == "") {
+      drawTimer(frameID, id, time);
+      continue;
+    }
+    var timerFound = frame.find("#timer-" + id);
+    var timerData = serverTimers[i].split(";");
+    if (timerFound.length == 0) {
+      drawTimer(frameID, id, time);
+    } else {
+      $("#timer-" + id + "-time").html(time);
+      continue;
+    }
+  }
+}
+
+function displayTimers_2(timerArray) {
+  var frameID = "#timerZone";
+  var frame = $(frameID);
+
+  var clientTimers = frame.children();
+  var numberOfTimers = clientTimers.length;
+  var html = frame.html();
+
+  for (var i in timerArray) {
+    var id = timerArray[i].ID;
+    var time = timerArray[i].remainingTime;
+
+    if (frame.html() == "") {
+      drawTimer(frameID, id, time);
+      continue;
+    }
+    var timerFound = frame.find("#timer-" + id);
+    if (timerFound.length == 0) {
+      drawTimer(frameID, id, time);
+    } else {
+      $("#timer-" + id + "-time").html(moment.unix(Number(time)).format("HH:mm:ss Z"));
+      continue;
+    }
+  }
+}
+
+/*
+html +=
+"<div id='timer-" + timerData[0] + "' class='timer col-xs-6 col-md-2'><div class='timer-inner'>" +
+"<div class='row'><span id='timersTEST' class='bigLabel col-xs-12 col-md-12'>" + timerData[1] + "</span></div>" +
+"<div class='row'><button class='pause btn btn-default col-xs-6 col-md-6' onClick='pauseTimer(" + timerData[0] + ")'>Pause</button>" +
+"<button class='resume btn btn-default col-xs-6 col-md-6 hidden' onClick='resumeTimer(" + timerData[0] + ")'>Resume</button>" +
+"<button class='stop btn btn-default col-xs-6 col-md-6' onClick='stopTimer(" + timerData[0] + ")'>Stop</button>" +
+"<button class='restart btn btn-default col-xs-6 col-md-6 hidden' onClick='restartTimer(" + timerData[0] + ")'>Restart</button></div></div>" +
+"</div>";
+*/
 
 /**
  *
@@ -309,6 +429,48 @@ function displaySensorData(args) {
   $("#sensorData").html(html)
 }
 
+function displaySensorData_2(dataArray) {
+  $("#sensorData").html("");
+
+  for (var i in dataArray) {
+    var html = "<span>";
+    html += "Device ID: " + dataArray[i].id;
+    html += " Time: " + moment.unix(Number(dataArray[i].time)).format("YYYY-MM-DD HH:mm:ss");
+    html += " PPM: " + dataArray[i].ppm;
+    html += " Temperatures:";
+    for (var j in dataArray[i].temperatures) {
+      html += " " + parseFloat(dataArray[i].temperatures[j]).toFixed(2);
+    }
+    html += "</span><br />"
+  }
+
+  $("#sensorData").html(html)
+  
+
+
+  ////////
+
+  // for (var i = 0; i < args.length; ++i) {
+  //   var deviceData = args[i].split(":");
+  //   devices.push({id: deviceData[0], time: deviceData[1], ppm: deviceData[2], temperatures: deviceData.slice(3, deviceData.length)});
+  // };
+
+  // $("#sensorData").html("");
+
+  // for (var i = 0; i < devices.length; ++i) {
+  //   var html = "<span>";
+  //   html += "Device ID: " + devices[i].id;
+  //   html += " Time: " + moment.unix(Number(devices[i].time)).format("YYYY-MM-DD HH:mm:ss");
+  //   html += " PPM: " + devices[i].ppm;
+  //   html += " Temperatures:";
+  //   for (var j = 0; j < devices[i].temperatures.length; ++j) {
+  //     html += " " + parseFloat(devices[i].temperatures[j]).toFixed(2);
+  //   }
+  //   html += "</span><br />"
+  // }
+  // $("#sensorData").html(html)
+}
+
 /**
  *
  */
@@ -329,6 +491,11 @@ function drawGraph(args) {
   graph_drawGraphFromObject(device)
 }
 
+function drawGraph_2(devicesRecords) {
+  for (var i in devicesRecords)
+    graph_drawGraphFromObject(devicesRecords[i]);
+}
+
 /**
  *
  */
@@ -340,6 +507,59 @@ function getRecordedData() {
       start = 0;
     if (end < 0)
       end = 0;
-    G_WEBSOCKET.send( "/getRecordedData "+ "Derp " + start + " " + end); // a complete day
+    G_WEBSOCKET.send("/getRecordedData "+ "Derp " + start + " " + end); // a complete day
   }
+}
+
+/**
+ *
+ */
+function onTimerResumed(timerId) {
+  var domId = "#timer-" + timerId;
+  $(domId).find(domId + "-control-resume").css("display", "none");
+  $(domId).find(domId + "-control-pause").css("display", "block");
+}
+
+/**
+ *
+ */
+function onTimerPaused(timerId) {
+  var domId = "#timer-" + timerId;
+  $(domId).find(domId + "-control-pause").css("display", "none");
+  $(domId).find(domId + "-control-resume").css("display", "block");
+}
+
+/**
+ *
+ */
+function onTimerStopped(timerId) {
+  var domId = "#timer-" + timerId;
+  $(domId).find(domId + "-control-resume").css("display", "none");
+  $(domId).find(domId + "-control-pause").css("display", "none");
+  $(domId).find(domId + "-control-stop").css("display", "none");
+  $(domId).find(domId + "-control-restart").css("display", "block");
+  $(domId).find(domId + "-control-destroy").css("display", "block");
+}
+
+/**
+ *
+ */
+function onTimerRestarted(timerId) {
+  var domId = "#timer-" + timerId;
+  $(domId).find(domId + "-control-restart").css("display", "none");
+  $(domId).find(domId + "-control-destroy").css("display", "none");
+  $(domId).find(domId + "-control-stop").css("display", "block");
+  $(domId).find(domId + "-control-pause").css("display", "block");
+}
+
+/**
+ *
+ */
+function onTimerDestroyed(timerId) {
+  var domId = "#timer-" + timerId;
+  $(domId).remove();
+}
+
+function test_json() {
+  G_WEBSOCKET.send("/test_json");
 }

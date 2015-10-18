@@ -1,6 +1,6 @@
 // Connection buttons
-document.getElementById("btn.connection.connect").style.display = "block";
-document.getElementById("btn.connection.disconnect").style.display = "none";
+$("#btn-connection-connect").css("display", "block");
+$("#btn-connection-disconnect").css("display", "none");
 
 var dialogList = [
 "seturidialog",
@@ -8,17 +8,7 @@ var dialogList = [
 "consultdatadialog"
 ];
 for (var i = 0; i < dialogList.length; i++) {
-  document.getElementById(dialogList[i]).style.display = "none";
-}
-var navbarList = [
-"navbar.connect",
-"navbar.disconnect",
-"navbar.addtimer",
-"navbar.stop",
-"navbar.seturi"
-];
-for (var i = 0; i < dialogList.length; i++) {
-  document.getElementById(dialogList[i]).style.display = "none";
+  $("#" + dialogList[i]).css("display", "none");
 }
 
 /**
@@ -26,11 +16,11 @@ for (var i = 0; i < dialogList.length; i++) {
  */
 function displaydialog(name, show) {
   if (show == true)
-    document.getElementById(name).style.display = "block";
+    $("#" + name).css("display", "block");
   else if (show == false)
-    document.getElementById(name).style.display = "none";
+    $("#" + name).css("display", "none");
   else
-    document.getElementById(name).style.display = "block";
+    $("#" + name).css("display", "block");
 }
 
 /**
@@ -47,9 +37,10 @@ function toggleDialog(name) {
  *
  */
 function isHidden(name) {
-  if (document.getElementById(name).style.display == "block")
+  var property = $("#" + name).css("display");
+  if (property == "block")
     return false;
-  else if (document.getElementById(name).style.display == "none")
+  else if (property == "none")
     return true;
   else
     return false;
@@ -61,9 +52,9 @@ function isHidden(name) {
 function displayaddtimerdialog(show) {
   displaydialog("addtimerdialog", show);
   if (show == false) {
-    document.getElementById("timerH").value = "";
-    document.getElementById("timerM").value = "";
-    document.getElementById("timerS").value = "";
+    $("#timerH").val("");
+    $("#timerM").val("");
+    $("#timerS").val("");
   }
 }
 
@@ -72,7 +63,7 @@ function displayaddtimerdialog(show) {
  */
 function hideAllDialogs() {
   for (var i = 0; i < dialogList.length; i++) {
-    document.getElementById(dialogList[i]).style.display = "none";
+    $("#" + dialogList[i]).css("display", "none");
   }
 }
 
@@ -82,7 +73,7 @@ function hideAllDialogs() {
 function hideAllDialogsLess(dialogName) {
   for (var i = 0; i < dialogList.length; i++) {
     if (dialogList[i] != dialogName)
-      document.getElementById(dialogList[i]).style.display = "none";
+      $("#" + dialogList[i]).css("display", "none");
   }
 }
 
@@ -152,16 +143,17 @@ $(function () {
  *
  */
 function ui_onopen() {
-  document.getElementById("btn.connection.connect").style.display = "none";
-  document.getElementById("btn.connection.disconnect").style.display = "block";
+  $("#btn-connection-connect").css("display", "none");
+  $("#btn-connection-disconnect").css("display", "block");
 }
 
 /**
  *
  */
 function ui_onclose() {
-  document.getElementById("btn.connection.connect").style.display = "block";
-  document.getElementById("btn.connection.disconnect").style.display = "none";
-  document.getElementById("sensorData").innerHTML = "";
-  document.getElementById("timers").innerHTML = "";
+  $("#btn-connection-connect").css("display", "block");
+  $("#btn-connection-disconnect").css("display", "none");
+  $("#sensorData").html("");
+  $("#timers").html("");
+  $("#timerZone").html("");
 }

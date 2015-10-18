@@ -1,133 +1,124 @@
 <html>
 <head>
-  <title>Cocina segura</title>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" type="text/css" href="./css/ui.css" />
-  <!-- jQuery -->
-  <script src="./js/jquery-2.1.4.min.js"></script>
-  <!-- Bootstrap -->
-  <link rel="stylesheet" type="text/css" href="./css/bootstrap.min.css" />
-  <link rel="stylesheet" type="text/css" href="./css/bootstrap-datepicker.min.css" />
-  <!--Graph things-->
-  <script src="./js/d3.min.js"></script>
-  <script src="./js/epoch.min.js"></script>
-  <link rel="stylesheet" type="text/css" href="./css/epoch.min.css" />
-  <link rel="stylesheet" type="text/css" href="./css/graph.css" />
+	<title>Cocina segura</title>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" type="text/css" href="./css/ui.css" />
+	<!-- Bootstrap -->
+	<link rel="stylesheet" type="text/css" href="./css/bootstrap.min.css" />
+	<link rel="stylesheet" type="text/css" href="./css/bootstrap-datepicker.min.css" />
+	<!--Graph things-->
+	<link rel="stylesheet" type="text/css" href="./css/epoch.min.css" />
+	<link rel="stylesheet" type="text/css" href="./css/graph.css" />
 </head>
 <body>
-    <!-- MENU -->
-  <div id="mainmenu">
-    <div class="col-xs-12 col-md-1">
-      <button id="btn.connection.connect" type="button" class="btn btn-primary col-xs-12 col-md-12" onClick="initWebSocket();"><img src="./rsc/img/icons/connect.svg" width="20" hight="20" /></button>
-      <button id="btn.connection.disconnect" type="button" class="btn btn-danger col-xs-12 col-md-12" onClick="stopWebSocket();"><img src="./rsc/img/icons/disconnect.svg" width="20" hight="20" /></button>
-    </div>
-    <div class="btn-group col-xs-12 col-md-11">
-      <button type="button" id="addtimerbutton" class="btn btn-default col-xs-3 col-md-3" onClick="toggleSetURIDialog();">URI</button>
-      <button type="button" id="addtimerbutton" class="btn btn-default col-xs-3 col-md-3" onClick="toggleAddTimerDialog();">Timer</button>
-      <button type="button" id="addtimerbutton" class="btn btn-default col-xs-3 col-md-3" onClick="toggleConsultDataDialog();">Data Log</button>
-      <button type="button" id="stoptimerbutton" class="btn btn-default col-xs-3 col-md-3" onClick="stop();">Stop</button>
-    </div>
-    <div id="alert" class="infobar col-xs-12 col-md-12"></div>
-  </div>    	
-    <!-- /MENU -->
-    
-    <!-- SET URI DIALOG -->
-  <div id="seturidialog">
-    <div class="col-xs-12 col-md-12">
-      <div class="form-group col-xs-12 col-md-6">
-        <label for="ip">IP:</label>
-        <input id="ip" class="form-control col-xs-12 col-md-4" type="text" name="ip" placeholder="IP" value="drqwertysilence.no-ip.biz">
-      </div>
-      <div class="form-group col-xs-12 col-md-6">
-        <label for="port">Port:</label>
-        <input id="port" class="form-control col-xs-12 col-md-4" type="number" name="port" placeholder="Port" value="1234">
-      </div>
-      <div class="form-group col-xs-12 col-md-12">
-        <button type="button" class="btn btn-primary col-xs-12 col-md-6" onClick="setWsUri();">Set Websocket URI</button>
-        <button type="button" class="btn btn-default col-xs-12 col-md-6" onClick="displayseturidialog(false);">Cancel</button>
-      </div>
-    </div>
-  </div>
-    <!-- /SET URI DIALOG -->
-    <!-- TIMER DIALOG -->
-  <div id="addtimerdialog">
-    <div class="col-xs-12 col-md-12">
-      <div class="form-group col-xs-12 col-md-4">
-        <label for="ip">Hours:</label>
-        <input id="timerH" class="form-control col-xs-12 col-md-4" type="number" name="timerH" placeholder="Hours" value="">
-      </div>
-      <div class="form-group col-xs-12 col-md-4">
-        <label for="port">Minutes:</label>
-        <input id="timerM" class="form-control col-xs-12 col-md-4" type="number" name="timerM" placeholder="Minutes" value="">
-      </div>
-      <div class="form-group col-xs-12 col-md-4">
-        <label for="port">Seconds:</label>
-        <input id="timerS" class="form-control col-xs-12 col-md-4" type="number" name="timerS" placeholder="Seconds" value="">
-      </div>
-      <div class="form-group col-xs-12 col-md-12">
-        <button class="btn btn-primary col-xs-6 col-md-6" onClick="setTimer();">Set timer</button>
-        <button class="btn btn-default col-xs-6 col-md-6" onClick="displayaddtimerdialog(false);">Cancel</button>
-      </div>
-    </div>
-  </div>
-  <!-- /TIMER DIALOG -->
-
-  <!-- GRAPH THINGS -->
-  <div id="consultdatadialog">
-    <div class="col-xs-12 col-md-12">
-      <div class="form-group col-xs-12 col-md-12">
-        <div id="sandbox-container">
-          <label for="ip">Date range:</label>
-          <div class="input-daterange input-group" id="datepicker">
-            <input id="input-daterange-start" type="text" class="input-sm form-control" name="start" />
-            <span class="input-group-addon">to</span>
-            <input id="input-daterange-end" type="text" class="input-sm form-control" name="end" />
-          </div>
-        </div>
-      </div>
-
-      <div class="form-group col-xs-12 col-md-12">
-        <button type="button" class="btn btn-primary col-xs-12 col-md-12" onClick="getRecordedData()">Get recorded data</button>
-      </div>
-    </div>
-
-    <span id="deviceX" class="label label-default col-xs-12 col-md-12">Device X
-    </span>
-    <div id="graph" class="col-xs-12 col-md-12" style="width:1024px;height:256px;"></div>
-    <div id="temperatureGraph" class="col-xs-12 col-md-12" style="width:1024px;height:256px;"></div>
-  </div>
-    <!-- /GRAPH THINGS -->
-    <!-- SENSOR DATA -->
-  <div>
-    <div class="row">
-      <span id="sensorData" class="label label-default col-xs-12 col-md-12"></span>
-    </div>
-  </div>
-    <!-- /SENSORDATA -->
-    <!-- TIMERS -->
-  <div>
-    <div class="row">
-      <span id="timers" class="label label-default col-xs-12 col-md-12"></span>
-    </div>
-  </div>
-  <!-- /TIMERS -->
-
-  <!-- TEST -->
-  <div>
-    <div id="timerZone" class="col-xs-12 col-md-12">
-    </div>
-  </div>
-  <!-- /TEST -->
-
-  <script src="./js/bootstrap.min.js"></script>
-  <script type="text/javascript" src="./js/moment-with-locales.min.js"></script>
-  <script type="text/javascript" src="./js/bootstrap-datepicker.min.js"></script>
-
-  <script type="text/javascript" src="js/ui.js"></script>
-  <script type="text/javascript" src="js/websocket.js"></script>
-  <script type="text/javascript" src="js/graph.js"></script>
-
+	<!-- MENU -->
+	<div id="mainmenu">
+		<div class="col-xs-12 col-md-1">
+			<button id="btn-connection-connect" type="button" class="btn btn-primary col-xs-12 col-md-12" onClick="initWebSocket();"><img src="./rsc/img/icons/connect.svg" width="20" hight="20" /></button>
+			<button id="btn-connection-disconnect" type="button" class="btn btn-danger col-xs-12 col-md-12" onClick="stopWebSocket();"><img src="./rsc/img/icons/disconnect.svg" width="20" hight="20" /></button>
+		</div>
+		<div class="btn-group col-xs-12 col-md-11">
+			<button type="button" id="addtimerbutton" class="btn btn-default col-xs-4 col-md-4" onClick="toggleSetURIDialog();">URI</button>
+			<button type="button" id="addtimerbutton" class="btn btn-default col-xs-4 col-md-4" onClick="toggleAddTimerDialog();">Timer</button>
+			<button type="button" id="addtimerbutton" class="btn btn-default col-xs-4 col-md-4" onClick="toggleConsultDataDialog();">Log</button>
+		</div>
+		<dic class="col-xs-12 col-md-12">
+			<button type="button" id="stoptimerbutton" class="btn btn-warning col-xs-12 col-md-12" onClick="stop();">Stop</button>
+		</dic>
+		<div id="alert" class="infobar col-xs-12 col-md-12"></div>
+	</div>
+	<!-- /MENU -->
+	<!-- SET URI DIALOG -->
+	<div id="seturidialog">
+		<div class="col-xs-12 col-md-12">
+			<div class="form-group col-xs-12 col-md-6">
+				<label for="ip">IP:</label>
+				<input id="ip" class="form-control col-xs-12 col-md-4" type="text" name="ip" placeholder="IP" value="drqwertysilence.no-ip.biz">
+			</div>
+			<div class="form-group col-xs-12 col-md-6">
+				<label for="port">Port:</label>
+				<input id="port" class="form-control col-xs-12 col-md-4" type="number" name="port" placeholder="Port" value="1234">
+			</div>
+			<div class="form-group col-xs-12 col-md-12">
+				<button type="button" class="btn btn-primary col-xs-12 col-md-6" onClick="setWsUri();">Set Websocket URI</button>
+				<button type="button" class="btn btn-default col-xs-12 col-md-6" onClick="displayseturidialog(false);">Cancel</button>
+			</div>
+		</div>
+	</div>
+	<!-- /SET URI DIALOG -->
+	<!-- TIMER DIALOG -->
+	<div id="addtimerdialog">
+		<div class="col-xs-12 col-md-12">
+			<div class="form-group col-xs-12 col-md-4">
+				<label for="ip">Hours:</label>
+				<input id="timerH" class="form-control col-xs-12 col-md-4" type="number" name="timerH" placeholder="Hours" value="">
+			</div>
+			<div class="form-group col-xs-12 col-md-4">
+				<label for="port">Minutes:</label>
+				<input id="timerM" class="form-control col-xs-12 col-md-4" type="number" name="timerM" placeholder="Minutes" value="">
+			</div>
+			<div class="form-group col-xs-12 col-md-4">
+				<label for="port">Seconds:</label>
+				<input id="timerS" class="form-control col-xs-12 col-md-4" type="number" name="timerS" placeholder="Seconds" value="">
+			</div>
+			<div class="form-group col-xs-12 col-md-12">
+				<button class="btn btn-primary col-xs-6 col-md-6" onClick="setTimer();">Set timer</button>
+				<button class="btn btn-default col-xs-6 col-md-6" onClick="displayaddtimerdialog(false);">Cancel</button>
+			</div>
+		</div>
+	</div>
+	<!-- /TIMER DIALOG -->
+	<!-- GRAPH THINGS -->
+	<div id="consultdatadialog">
+		<div class="col-xs-12 col-md-12">
+			<div class="form-group col-xs-12 col-md-12">
+				<div id="sandbox-container">
+					<label for="ip">Date range:</label>
+					<div class="input-daterange input-group" id="datepicker">
+						<input id="input-daterange-start" type="text" class="input-sm form-control" name="start" />
+						<span class="input-group-addon">to</span>
+						<input id="input-daterange-end" type="text" class="input-sm form-control" name="end" />
+					</div>
+				</div>
+			</div>
+			<div class="form-group col-xs-12 col-md-12">
+				<button type="button" class="btn btn-primary col-xs-12 col-md-12" onClick="getRecordedData()">Get recorded data</button>
+			</div>
+		</div>
+		<div class="col-xs-12 col-md-12" style="overflow:auto;">
+			<div id="graph" class="epoch category10 col-xs-12 col-md-12" style="width:1200;height:200px;"></div>
+			<div id="temperatureGraph" class="epoch category10 col-xs-12 col-md-12" style="width:1200px;height:200px;"></div>
+		</div>
+	</div>
+	<!-- /GRAPH THINGS -->
+	<!-- TIMERS -->
+<!-- 	<div>
+		<span id="timers" class="label label-default col-xs-12 col-md-12"></span>
+	</div> -->
+	<!-- /TIMERS -->
+		<!-- SENSOR DATA -->
+	<div id="dataRow">
+		<span id="sensorData" class="ac-label col-xs-12 col-md-12"></span>
+	</div>
+	<!-- /SENSORDATA -->
+	<!-- TIMERS -->
+	<div>
+		<div id="timerZone" class="col-xs-12 col-md-12"></div>
+	</div>
+	<!-- /TIMERS -->
+	<!-- jQuery -->
+	<script src="./js/jquery-2.1.4.min.js"></script>
+	<!--Graph things-->
+	<script src="./js/d3.min.js"></script>
+	<script src="./js/epoch.min.js"></script>
+	<!--BootStrap-->
+	<script src="./js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="./js/moment-with-locales.min.js"></script>
+	<script type="text/javascript" src="./js/bootstrap-datepicker.min.js"></script>
+	<script type="text/javascript" src="js/ui.js"></script>
+	<script type="text/javascript" src="js/websocket.js"></script>
+	<script type="text/javascript" src="js/graph.js"></script>
 </body>
 </html>
