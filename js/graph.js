@@ -1,104 +1,60 @@
-var graph;
-var temperatureGraph;
+var graph = $('#graph').epoch({
+    type: 'scatter',
+    data: Array(),
+    axes: ['left', 'bottom']
+});
+var temperatureGraph = $('#temperatureGraph').epoch({
+    type: 'scatter',
+    data: Array(),
+    axes: ['left', 'bottom']
+});
 
 /**
- *
+ * 
  */
 function graph_drawGraphFromObject(object) {
-  if (object.records.length == 0)
-    return;
+    if (object.records.length == 0)
+        return;
+    
+    var lineChartData = Array();
+    var TemperatureLineChartData = Array();
 
-  var lineChartData = Array();
-  var TemperatureLineChartData = Array();
-  // PPM
-  var ppmLine = {label: "PPM"};
-  ppmLine.values = Array();
-  for (var i = 0; i < object.records.length; ++i) {
-    ppmLine.values.push({
-      // time: object.records[i].time,
-      x: object.records[i].date,
-      y: object.records[i].ppm
-    });
-  }
-  lineChartData.push(ppmLine);
-
-  graph = $('#graph').epoch({
-    // type: 'time.line',
-    type: 'line',
-    data: lineChartData,
-    axes: ['left', 'bottom']
-  });
-
-  // var asdasd = $('#graph').find(".x").find("text");
-
-  // TEMPERATURE
-  for (var i = 0; i < object.records[0].temperatures.length; ++i) { // object.records[0].temperatures.length : The length of the temperature data array (can be any of them)
-    var tempLine = {label: "Temperature " + (i + 1)};
-    tempLine.values = Array();
-    for (var j = 0; j < object.records.length; ++j) {
-      tempLine.values.push({
-        // time: object.records[j].time,
-        x: object.records[j].date,
-        y: object.records[j].temperatures[i]
-      });
+    // PPM
+    var ppmLine = {label: "PPM"};
+    ppmLine.values = Array();
+    for (var i = 0; i < object.records.length; ++i) {
+        ppmLine.values.push({
+            x: object.records[i].date,
+            y: object.records[i].ppm
+        });
     }
-    TemperatureLineChartData.push(tempLine);
-  }
-  // graph.update(lineChartData);
-  // temperatureGraph.update(TemperatureLineChartData);
-  //
-  
-  temperatureGraph = $('#temperatureGraph').epoch({
-    // type: 'time.line',
-    type: 'line',
-    data: TemperatureLineChartData,
-    axes: ['left', 'bottom']
-  });
+    lineChartData.push(ppmLine);
 
+    graph.update(lineChartData);
+    
+    // TEMPERATURE
+    var tempSensorCuantity = object.records[0].temperatures.length; // object.records[0].temperatures.length : The length of the temperature data array (can be any of them).
+    for (var i = 0; i < tempSensorCuantity; ++i) {
+        var tempLine = {label: "Temperature " + (i + 1)};
+        tempLine.values = Array();
+        for (var j = 0; j < object.records.length; ++j) {
+            tempLine.values.push({
+                x: object.records[j].date,
+                y: object.records[j].temperatures[i]
+            });
+        }
+        TemperatureLineChartData.push(tempLine);
+    }
 
+    temperatureGraph.update(TemperatureLineChartData);
 
-  // if (object.data.length == 0)
-  //   return;
+    $('#graph').find(".x").find("text").each(function () {
+        $(this).html(moment.tz(Number($(this).html()), "").format("HH:mm:ss"));
+    });
 
-  // var lineChartData = Array();
-  // var TemperatureLineChartData = Array();
-  // // PPM
-  // var ppmLine = {label: "PPM"};
-  // ppmLine.values = Array();
-  // for (var i = 0; i < object.data.length; ++i) {
-  //   ppmLine.values.push({
-  //     // time: object.data[i].time,
-  //     x: object.data[i].time,
-  //     y: object.data[i].ppm
-  //   });
-  // }
-  // lineChartData.push(ppmLine);
-  // // TEMPERATURE
-  // for (var i = 0; i < object.data[0].temperatures.length; ++i) { // object.data[0].temperatures.length : The length of the temperature data array (can be any of them)
-  //   var tempLine = {label: "Temperature " + (i + 1)};
-  //   tempLine.values = Array();
-  //   for (var j = 0; j < object.data.length; ++j) {
-  //     tempLine.values.push({
-  //       // time: object.data[j].time,
-  //       x: object.data[j].time,
-  //       y: object.data[j].temperatures[i]
-  //     });
-  //   }
-  //   TemperatureLineChartData.push(tempLine);
-  // }
-  // // graph.update(lineChartData);
-  // // temperatureGraph.update(TemperatureLineChartData);
-  // //
-  // graph = $('#graph').epoch({
-  //   // type: 'time.line',
-  //   type: 'line',
-  //   data: lineChartData,
-  //   axes: ['left', 'bottom']
-  // });
-  // temperatureGraph = $('#temperatureGraph').epoch({
-  //   // type: 'time.line',
-  //   type: 'line',
-  //   data: TemperatureLineChartData,
-  //   axes: ['left', 'bottom']
-  // });
+    $('#temperatureGraph').find(".x").find("text").each(function () {
+        $(this).html(moment.tz(Number($(this).html()), "").format("HH:mm:ss"));
+    });
+
+    
 }
