@@ -1,8 +1,3 @@
-/****************************************************************
- * UGLY GLOBALS!!!
- ****************************************************************/
-var G_DEBUG = false;
-
 /**
  * WEBSOCKET STATES:
  * 0 = "CONNECTING";
@@ -18,7 +13,6 @@ var G_URI = "ws://localhost:1234";
  * Binary messages:
  */
 var BM_TEST_8_TO_32 = 50
-var BM_SET_TIMER = 100
 
 /**
  * Set the websocket url to the textbox 'wsuri'.
@@ -59,12 +53,12 @@ function binary_int32ToByteArray(integer32) {
  * 
  */
 function binary_byteArrayToInt32(byteArray) {
-    var integer32 = 0;
+    var int32 = 0;
     //
     for (var i = 0; i < byteArray.length; ++i)
-        integer32 += byteArray[i] * Math.pow(0x100, byteArray.length - i - 1);
+        int32 += byteArray[i] * Math.pow(0x100, byteArray.length - i - 1);
     //
-    return integer32;
+    return int32;
 }
 
 /**
@@ -90,43 +84,31 @@ function onBinaryMessage(evt) {
 }
 
 /**
- * 
+ * Process json message from server.
  */
 function onTextMessage(evt) {
-    //
-    var serverObj = "";
-    var serverMsg = "";
-    if (evt.data[0] != "/") {
-        serverObj = JSON.parse(evt.data);
-        serverMsg = serverObj.message;
-    }
-    //
-    var message = evt.data.split(" ");
-    var message_command = message[0];
-    var message_args = message.slice(1, message.length);
-    //
+    var serverObj = JSON.parse(evt.data);
+    var serverMsg = serverObj.message;
+    var data = serverObj.data;
+    
     if (serverMsg == "alert")
-        shouldAlert(serverObj.msgData.value)
+        shouldAlert(data.value)
     else if (serverMsg == "displayTimers")
-        displayTimers(serverObj.msgData);
+        displayTimers(data);
     else if (serverMsg == "displaySensorData")
-        displaySensorData(serverObj.msgData);
+        displaySensorData(data);
     else if (serverMsg == "recordedDataForGraph")
-        drawGraph(serverObj.msgData);
+        drawGraph(data);
     else if (serverMsg == "timerResumed")
-        onTimerResumed(serverObj.msgData.id);
+        onTimerResumed(data.id);
     else if (serverMsg == "timerPaused")
-        onTimerPaused(serverObj.msgData.id);
+        onTimerPaused(data.id);
     else if (serverMsg == "timerStopped")
-        onTimerStopped(serverObj.msgData.id);
+        onTimerStopped(data.id);
     else if (serverMsg == "timerRestarted")
-        onTimerRestarted(serverObj.msgData.id);
+        onTimerRestarted(data.id);
     else if (serverMsg == "timerDestroyed")
-        onTimerDestroyed(serverObj.msgData.id);
-    else {
-        alert(evt.data);
-        alert(JSON.parse(evt.data).message);
-    }
+        onTimerDestroyed(data.id);
 }
 
 /**
@@ -171,14 +153,14 @@ function stopWebSocket() {
 /**
  * 
  */
-function tick() {
+function loop() {
     if (G_WEBSOCKET != null && G_WEBSOCKET.readyState == 1) {
         updateTimers();
         updateSensorData(0);
     }
 }
 
-var G_INTERVAL = setInterval(function(){tick()}, 1000);
+var G_INTERVAL = setInterval(function(){loop()}, 1000);
 
 /****************************************************************
  * CLIENT TO SERVER
@@ -226,35 +208,35 @@ function setTimer() {
 }
 
 /**
- * 
+ * Tells to the server to resume a timer.
  */
 function resumeTimer(timerId) {
     G_WEBSOCKET.send( "/resumeTimer " + timerId );
 }
 
 /**
- * 
+ * Tells to the server to pause a timer.
  */
 function pauseTimer(timerId) {
     G_WEBSOCKET.send( "/pauseTimer " + timerId );
 }
 
 /**
- * 
+ * Tells to the server to stop a timer.
  */
 function stopTimer(timerId) {
     G_WEBSOCKET.send( "/stopTimer " + timerId );
 }
 
 /**
- * 
+ * Tells to the server to restart a timer.
  */
 function restartTimer(timerId) {
     G_WEBSOCKET.send( "/restartTimer " + timerId );
 }
 
 /**
- * 
+ * Tells to the server to destroy a timer.
  */
 function destroyTimer(timerId) {
     G_WEBSOCKET.send( "/destroyTimer " + timerId );
@@ -264,9 +246,10 @@ function destroyTimer(timerId) {
 /****************************************************************
  * SERVER TO CLIENT
  ****************************************************************/
- /**
-  *
-  */
+
+/**
+ * 
+ */
 function shouldAlert(state) {
     if (state)
         $("#alert").css("background-color", "orange");
@@ -301,6 +284,9 @@ function drawTimer(frame, id, description, time) {
     $(domId).find(domId + "-control-destroy").css("display", "none");
 }
 
+/**
+ *
+ */
 function displayTimers(timerArray) {
     var frameID = "#timerZone";
     var frame = $(frameID);
@@ -328,6 +314,9 @@ function displayTimers(timerArray) {
     }
 }
 
+/**
+ *
+ */
 function displaySensorData(dataArray) {
     $("#sensorData").html("");
     
@@ -346,6 +335,9 @@ function displaySensorData(dataArray) {
     $("#sensorData").html(html)
 }
 
+/**
+ *
+ */
 function drawGraph(devicesRecords) {
     for (var i in devicesRecords)
         graph_drawGraphFromObject(devicesRecords[i]);
